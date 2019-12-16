@@ -1,93 +1,176 @@
-// read the csv file
 
-const csv = require('csv-parser')
-const fs = require('fs')
-const results = [];
-// set column present to false
-var anotherPresent = false;
-var facilitiesPresent = false;
-var staffPresent = false;
-var safetyPresent = false;
-var infoPresent = false;
-var somethingElsePresent = false;
+//requiring path and fs modules
+const path = require('path');
+const fs = require('fs');
+//joining path of directory 
+const directoryPath = path.join(__dirname, 'FMC-data');
+var csvOut = new Object();
 
-// 
- 
-fs.createReadStream('FMC-data/2-answers.csv')
-  .pipe(csv())
-  .on('data', (data) => results.push(data))
-  .on('end', () => {
-    console.log(results);
-    var firstRowData = results[0];
-    var csvOut = new Object();
-    var csvInData = results[0];
+//passsing directoryPath and callback function
+fs.readdir(directoryPath, function (err, files) {
+    //handling error
+    if (err) {
+        return console.log('Unable to scan directory: ' + err);
+    } 
 
+    // process all files using forEach
 
- //   var myResults = JSON.parse(results);
-    var myResults = JSON.stringify(results);
-
-    console.log('myResults' + myResults );
-    console.log('results.another_reason ' + csvInData.another_reason );
-
-
-  csvOut.submissionId = csvInData.submission_id;
-  csvOut.court = csvInData.court;
-  csvOut.user_type = csvInData.user_type;
-  str = JSON.stringify(csvOut);
-  console.log('csvOut ' + str);
-
- 
-  if ('another_reason' in csvInData) {
-    console.log('another ')
-    csvOut.another_reason = csvInData.another_reason;
-    }
-  else {
-    csvOut.another_reason = "";
-    }
-
-  if ('facilities' in csvInData) {
-    console.log('facilities ')
-    csvOut.facilities = csvInData.facilites;
-    }
-  else {
-    csvOut.facilities = "";
-    }
-
-  if ('staff' in csvInData) {
-    console.log('staff ')
-    csvOut.staff = csvInData.staff;
-    }
-  else {
-    csvOut.staff = "";
-    }
-
-  if ('security_and_safety' in csvInData) {
-    console.log('safety ')
-    csvOut.security_and_safety = csvInData.security_and_safety;
-    }
-  else {
-    csvOut.security_and_safety = "";
-    }
-
-  if ('information_and_guidance' in csvInData) {
-    console.log('info ')
-    csvOut.information_and_guidance = csvInData.information_and_guidance;
-    }
-  else {
-    csvOut.information_and_guidance = "";
-    }
-
-  if ('something_else' in csvInData) {
-    console.log('something ')
-    csvOut.something_else = csvInData.something_else;
-    }
-  else {
-    csvOut.something_else = "";
-    }
-  str = JSON.stringify(csvOut);
-  console.log('csvOut ' + str);
-
-
+    files.forEach(function (file) {
+      var filename = directoryPath + '/' + file;
+      readCsv(filename, csvOut); 
+      writeCsv(csvOut);
+    });
 });
 
-  
+// read the csv file
+function readCsv(filename, csvOut) {
+
+  const csv = require('csv-parser')
+  const fs = require('fs')
+  const results = [];
+  console.log('filename ' + filename)
+  fs.createReadStream(filename)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', () => {
+    console.log(results);
+    var csvIn = results[0];
+    var d = Date();
+    csvOut.timestamp = d.substring(0,24);
+    csvOut.submission_id = csvIn.submission_id;
+    csvOut.court = csvIn.court;
+    csvOut.user_type = csvIn.user_type;
+   
+    if (csvIn.hasOwnProperty('another_reason')) {
+      console.log('another ')
+      csvOut.another_reason = csvIn.another_reason;
+      }
+    else {
+      csvOut.another_reason = "";
+      }
+
+    if (csvIn.hasOwnProperty('facilities')) {
+      console.log('facilities ')
+      csvOut.facilities = csvIn.facilities;
+      }
+    else {
+      console.log('no facilities ')
+
+      csvOut.facilities = "";
+      }
+
+    if (csvIn.hasOwnProperty('staff'))  {
+      console.log('staff ')
+      csvOut.staff = csvIn.staff;
+      }
+    else {
+      csvOut.staff = "";
+      }
+
+    if (csvIn.hasOwnProperty('security_and_safety')) {
+      console.log('safety ')
+      csvOut.security_and_safety = csvIn.security_and_safety;
+      }
+    else {
+      csvOut.security_and_safety = "";
+      }
+
+    if (csvIn.hasOwnProperty('information_and_guidance')) {
+      console.log('info ')
+      csvOut.information_and_guidance = csvIn.information_and_guidance;
+      }
+    else {
+      csvOut.information_and_guidance = "";
+      }
+
+    if (csvIn.hasOwnProperty('something_else'))  {
+      console.log('something ')
+      csvOut.something_else = csvIn.something_else;
+      }
+    else {
+      csvOut.something_else = "";
+      }
+
+    csvOut.what_happened = csvIn.what_happened;
+    csvOut.want_reply = csvIn.want_reply;
+
+    if (csvIn.hasOwnProperty('email_address'))  {
+      console.log('email_address ')
+      csvOut.email_address = csvIn.email_address;
+      }
+    else {
+      csvOut.email_address = "";
+    }
+
+  str = JSON.stringify(csvOut);
+  console.log('csvOut ' + str);
+  console.log('csvOut ' + csvOut);
+
+  });
+} // end csvRead
+
+function writeCsv(csvOut) { 
+
+// write to court file
+
+  const pathnameCourt = path.join(__dirname, csvOut.court, '-fmc-responses.csv');
+  console.log('pathnameCourt ' + pathnameCourt );
+  const createCsvWriterCourt = require('csv-writer').createObjectCsvWriter;
+  const csvWriterCourt = createCsvWriterCourt({
+    path: pathnameCourt,
+    header: [
+    'timestamp',
+    'submission_id', 
+    'court', 
+    'user_type',
+    'another_reason',
+    'facilities',
+    'staff',
+    'security_and_safety',
+    'information_and_guidance',
+    'something_else',
+    'what_happened',
+    'want_reply',
+    'email_address'],
+    append: 'true'
+    });
+  const recordsCourt = [
+   csvOut
+  ];
+   
+  csvWriterCourt.writeRecords(recordsCourt)       // returns a promise
+    .then(() => {
+        console.log('...Done');
+   });
+
+// write to central file
+  var pathname = 'fmc-responses.csv'
+  const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+  const csvWriter = createCsvWriter({
+    path: pathname,
+    header: [
+    'timestamp',
+    'submission_id', 
+    'court', 
+    'user_type',
+    'another_reason',
+    'facilities',
+    'staff',
+    'security_and_safety',
+    'information_and_guidance',
+    'something_else',
+    'what_happened',
+    'want_reply',
+    'email_address'],
+    append: 'true'
+    });
+  const records = [
+   csvOut
+  ];
+   
+  csvWriter.writeRecords(records)       // returns a promise
+    .then(() => {
+        console.log('...Done');
+   });
+} // end writeCsv  
+
