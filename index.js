@@ -2,32 +2,37 @@
 //requiring path and fs modules
 const path = require('path');
 const fs = require('fs');
-//joining path of directory 
-const directoryPath = path.join(__dirname, 'FMC-data');
+const csv = require('csv-parser');
+const ExcelJS = require('exceljs');
+var results = [];
 var csvOut = new Object();
 
+//joining path of directory
+const directoryPath = path.join(__dirname, 'FMC-data');
+
 //passsing directoryPath and callback function
+
 fs.readdir(directoryPath, function (err, files) {
     //handling error
-    if (err) {
-        return console.log('Unable to scan directory: ' + err);
-    } 
+  if (err) {
+      return console.log('Unable to scan directory: ' + err);
+  }
 
-    // process all files using forEach
+  // process all files using forEach
 
-    files.forEach(function (file) {
-      var filename = directoryPath + '/' + file;
-      readCsv(filename, csvOut); 
-      writeCsv(csvOut);
+  files.forEach(function (file) {
+    let filename = directoryPath + '/' + file;
+    readCsv(filename, function (err, csvOut) {
+        //handling error
+      if (err) {
+          return console.log('cannot readCsv: ' + err);
+      };
     });
+  });
 });
-
 // read the csv file
 function readCsv(filename, csvOut) {
 
-  const csv = require('csv-parser')
-  const fs = require('fs')
-  const results = [];
   console.log('filename ' + filename)
   fs.createReadStream(filename)
     .pipe(csv())
@@ -40,7 +45,7 @@ function readCsv(filename, csvOut) {
     csvOut.submission_id = csvIn.submission_id;
     csvOut.court = csvIn.court;
     csvOut.user_type = csvIn.user_type;
-   
+
     if (csvIn.hasOwnProperty('another_reason')) {
       console.log('another ')
       csvOut.another_reason = csvIn.another_reason;
@@ -104,24 +109,29 @@ function readCsv(filename, csvOut) {
 
   str = JSON.stringify(csvOut);
   console.log('csvOut ' + str);
-  console.log('csvOut ' + csvOut);
-
+  });
+  writeCsv(csvOut, function (err, retval) {
+      //handling error
+    if (err) {
+        return console.log('cannot readCsv: ' + err);
+    };
   });
 } // end csvRead
 
-function writeCsv(csvOut) { 
-
 // write to court file
 
-  const pathnameCourt = path.join(__dirname, csvOut.court, '-fmc-responses.csv');
+function writeCsv(csvOut) {
+
+//  const pathnameCourt = path.join(__dirname, csvOut.court, '-fmc-responses.xlsx');
+  const pathnameCourt = csvOut.court + '-fmc-responses.xls';
   console.log('pathnameCourt ' + pathnameCourt );
   const createCsvWriterCourt = require('csv-writer').createObjectCsvWriter;
   const csvWriterCourt = createCsvWriterCourt({
     path: pathnameCourt,
     header: [
     'timestamp',
-    'submission_id', 
-    'court', 
+    'submission_id',
+    'court',
     'user_type',
     'another_reason',
     'facilities',
@@ -137,21 +147,22 @@ function writeCsv(csvOut) {
   const recordsCourt = [
    csvOut
   ];
-   
+
   csvWriterCourt.writeRecords(recordsCourt)       // returns a promise
     .then(() => {
         console.log('...Done');
    });
 
 // write to central file
-  var pathname = 'fmc-responses.csv'
+  var pathname = 'fmc-responses.xls'
   const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+  console.log('pathname ' + pathname );
   const csvWriter = createCsvWriter({
     path: pathname,
     header: [
     'timestamp',
-    'submission_id', 
-    'court', 
+    'submission_id',
+    'court',
     'user_type',
     'another_reason',
     'facilities',
@@ -167,10 +178,9 @@ function writeCsv(csvOut) {
   const records = [
    csvOut
   ];
-   
+
   csvWriter.writeRecords(records)       // returns a promise
     .then(() => {
         console.log('...Done');
    });
-} // end writeCsv  
-
+} // end writeCsv
